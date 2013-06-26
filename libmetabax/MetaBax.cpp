@@ -1,4 +1,4 @@
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  *                                                                           *
  *                       libmetabax - Main Source File                       *
  *                                                                           *
@@ -21,32 +21,50 @@ namespace MetaBax
 ///
 
 
-
-template<class T>
 void avs_row_to_img(float* sig_row, int sig_row_len,
-                    T*     img_row, int img_row_len, fptr_frgb2img frgb2img)
+                    void*  img_row, int img_row_len, fptr_frgb2img frgb_row_to_img_row)
 {
-    assert(sig_row_len == (img_row_len * 4));   // Or disable this check to allow lower-resolutions and use nearest neighbour?
+    // sig_row_len = samples/row
+    // img_row_len = pixels/row
 
+    float *frgb_row = new float[3 * img_row_len];
+    float *frgb_val = frgb_row;
 
     for (int i = 0; i < img_row_len; i++)
     {
         // Decode signal into R, G, and B components.
         float r, g, b;
 
-        frgb2img(r, g, b, (void*)img_row);
-        img_row++;
+        //...
+
+        *(frgb_val++) = r;
+        *(frgb_val++) = g;
+        *(frgb_val++) = b;
     }
 
+    frgb_row_to_img_row(frgb_row, img_row, img_row_len);
+        
 
+    delete[] frgb_row;
 }
 
 
-void frgb_to_SDL_32bpp(float r, float b, float g, void* pixel)
+void frgb_row_conv_32bppARGB(float *frgb_row, void* img_row, int img_row_len)
 {
-    *((int*)pixel) =   (((int)r) & 0xFF) << 16
-                     | (((int)g) & 0xFF) << 8
-                     | (((int)b) & 0xFF);
+    int   i         = 0;
+    float *frgb_val = frgb_row;     
+    int   *img_val  = (int*)img_row;
+    // Pre-decrement pointers since they are pre-incremented in the loop below.
+    frgb_row--;
+    img_row--;
+    // Loop through and set each pixel value in the row (32bpp RGBA).
+    while (i < img_row_len)
+    {
+        *(++img_val) =   (int)(*(++frgb_val)) << 16
+                       | (int)(*(++frgb_val)) << 8
+                       | (int)(*(++frgb_val));
+        i++;
+    }
 }
 
 

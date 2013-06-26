@@ -18,17 +18,17 @@ namespace MetaBax
 {
 ///
 
-typedef void (*fptr_frgb2img)(float, float, float, void*);
+typedef void (*fptr_frgbrow2img)(float*, void*, int);
 
 // Signal Encoding:
 
 // Signal Decoding:
 template<class T>
 void avs_row_to_img(float* sig_row, int sig_row_len,
-                    T*     img_row, int img_row_len, fptr_frgb2img frgb2img);
+                    void*  img_row, int img_row_len, fptr_frgbrow2img frgb2img);
 
 // Pixel Conversion Formats (may be moved to separate file):
-void frgb_to_SDL_32bpp(float r, float b, float g, void* pixel);
+void frgb_to_SDL_32bpp(float *frgb_row, void* img_row, int img_row_len);
 
 
 ///

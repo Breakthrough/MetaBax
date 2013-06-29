@@ -21,7 +21,20 @@
 
 MetaBax::MetaBax(int sig_line_len, int sig_num_lines);
 {
-    _composite = new float[height * width * 4];
+    int sig_len = sig_line_len * sig_num_lines;
+
+    this->sig_len       = sig_len;
+    this->sig_line_len  = sig_line_len;
+    this->sig_num_lines = sig_num_lines;
+
+    _composite = new float[sig_len];
+    _y_buffer  = new float[sig_len];
+    _i_buffer  = new float[sig_len];
+    _q_buffer  = new float[sig_len];
+
+    //
+    // TODO: Check above if anything can't be allocated.
+    //
 
 }
 
@@ -32,10 +45,10 @@ void  MetaBax::Update();     // Updates signal with image including RX noise, et
 }
 
 
-void MetaBax::avs_row_to_img(float* sig_row, int sig_row_len,
+void MetaBax::avs_row_to_img(float* sig_row, int sig_line_len,
     void*  img_row, int img_w, fptr_frgb2img frgb_row_to_img_row)
 {
-    // sig_row_len = samples/row
+    // sig_line_len = samples/row
     // img_w = pixels/row
 
     float *frgb_row = new float[3 * img_w];
@@ -67,11 +80,11 @@ void MetaBax::avs_row_to_img(float* sig_row, int sig_row_len,
 void MetaBax::LoadImage(int img_w, int img_h, char* img_ptr, int stride,
     fptr_img_row_to_yiq img_row_to_yiq)
 {
-    for (int sig_row = 0; sig_row < sig_num_rows; sig_row++)
+    for (int sig_row = 0; sig_row < sig_num_lines; sig_row++)
     {
         char* img_row_ptr = img_ptr;
         
-        img_row_ptr += (((img_h * sig_row) / sig_num_rows) * img_w * stride);
+        img_row_ptr += (((img_h * sig_row) / sig_num_lines) * img_w * stride);
 
         // Convert image row to YIQ (stored in private class vars).
         img_row_to_yiq(img_row_ptr, img_w, stride, sig_row);
@@ -90,11 +103,11 @@ static void MetaBax::ARGB32_row_to_yiq(char* img_row_ptr, int img_w,
     int stride, int sig_row, float* y_buffer, float* i_buffer, float* q_buffer)
 {
     // nearest neighbour for the row values.
-    int yiq_offset = sig_row * sig_row_len;
-    for (int i = 0; i < sig_row_len; i++)
+    int yiq_offset = sig_row * sig_line_len;
+    for (int i = 0; i < sig_line_len; i++)
     {
         char* pixel = img_row_ptr;
-        pixel += (((img_w * i) / sig_row_len) * stride);
+        pixel += (((img_w * i) / sig_line_len) * stride);
 
         // pixel[0] == alpha channel == unused
         y_buffer[yiq_offset + i] = 

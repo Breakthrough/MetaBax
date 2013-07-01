@@ -13,17 +13,21 @@
 # COPYRIGHT file, or visit http://github.com/Breakthrough/MetaBax.          #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+
 all: libmetabax mbtv
 
 libmetabax: ./libmetabax/MetaBax.o
-mbtv: ./mbtv/mbtv
+mbtv:       ./mbtv/mbtv
+
 
 ./libmetabax/MetaBax.o:
 	g++ -Wall -c -o ./libmetabax/MetaBax.o ./libmetabax/MetaBax.cpp 
 
+
 ./mbtv/mbtv:
 	g++ `pkg-config --cflags sdl` -I ./libmetabax -c ./mbtv/main.cpp -o ./mbtv/main.o
 	g++ ./mbtv/main.o ./libmetabax/MetaBax.o -o ./mbtv/mbtv `pkg-config --libs sdl`
+
 
 clean:
 	rm -f ./mbtv/mbtv

@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cassert>
+#include <cmath>
 
 
 MetaBax::MetaBax(int sig_line_len, int sig_num_lines)
@@ -35,14 +36,26 @@ MetaBax::MetaBax(int sig_line_len, int sig_num_lines)
     _i_buffer  = new float[sig_len];
     _q_buffer  = new float[sig_len];
 
-    for (int i = 0; i < sig_len; i++)
-        _composite[i] = _y_buffer[i] = _i_buffer[i] = _q_buffer[i] = 0.0f;
+    this->SetImage_Blank();
 
     //
     // TODO: Check above if anything can't be allocated.
     //
-
 }
+
+void MetaBax::SetImage_Blank()
+{
+    for (int i = 0; i < this->sig_len; i++)
+        this->_composite[i] = this->_y_buffer[i] =
+        this->_i_buffer[i]  = this->_q_buffer[i] = 0.0f;
+}
+
+void MetaBax::SetImage_TestCard()
+{
+    // TODO: Add code to fill in Y/I/Q values for testcard.
+    
+}
+
 
 MetaBax::~MetaBax()
 {
@@ -53,13 +66,22 @@ MetaBax::~MetaBax()
 }
 
 
-void  MetaBax::Update()     // Updates signal with image including RX noise, etc.
+void MetaBax::Update()     // Updates signal with image including RX noise, etc.
 {
     // All this has to do is update the composite signal.
 
-    // TEMP:
+    float iq_multiplier[4];
+    for (int i = 0; i < 4; i++)
+    {
+        iq_multiplier[i] = cos( ((i%4) * PI_4) + PI_33_DEG);
+    }
+
+
     for (int i = 0; i < this->sig_len; i++)
+    {
         _composite[i] = ((float)rand()/RAND_MAX) * 255.0f;
+        _composite[i] = (_composite[i] * 0.08f) + (_y_buffer[i] * 0.92f);
+    }
 }
 
 
@@ -82,7 +104,7 @@ void MetaBax::GetImage(char* img_ptr, int img_w, int img_h, int stride, int pitc
         //
         // Update image with decoded row.
         //
-        char* img_row_ptr = img_ptr + (i * pitch);
+        char* img_row_ptr = img_ptr + (i * pitch);  // pitch is in bytes already.
         frgb_row_to_img_row(frgb_row, img_row_ptr, img_w, stride);
     }
     
@@ -100,19 +122,19 @@ void MetaBax::DecodeRow(int sig_row, float *frgb_row, int img_w)
         float composite_value = composite_ptr[(this->sig_line_len * i) / img_w];
         *(frgb_row++) = composite_value;
         *(frgb_row++) = composite_value;
-        *(frgb_row++) = composite_value; 
+        *(frgb_row++) = composite_value;
     }
 }
 
 
-void MetaBax::LoadImage(int img_w, int img_h, char* img_ptr, int stride,
+void MetaBax::LoadImage(int img_w, int img_h, char* img_ptr, int stride, int pitch,
     fptr_img_row_to_yiq img_row_to_yiq)
 {
     for (int sig_line = 0; sig_line < sig_num_lines; sig_line++)
     {
         char* img_row_ptr = img_ptr;
-        
-        img_row_ptr += (((img_h * sig_line) / sig_num_lines) * img_w * stride);
+        img_row_ptr += (((img_h * sig_line) / sig_num_lines) * pitch);
+
         int sig_offset = (sig_line * sig_line_len);
 
         // Convert image row to YIQ (stored in private class vars).
@@ -136,7 +158,7 @@ void MetaBax::ARGB32_row_to_yiq(char* img_row_ptr, int img_w, int stride,
     // nearest neighbour for the row values.
     for (int i = 0; i < sig_line_len; i++)
     {
-        char* pixel = img_row_ptr;
+        unsigned char* pixel = (unsigned char*)img_row_ptr;
         pixel += (((img_w * i) / sig_line_len) * stride);
 
         // pixel[0] == alpha channel == unused

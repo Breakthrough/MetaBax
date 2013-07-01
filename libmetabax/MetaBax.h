@@ -15,6 +15,19 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 
+#ifndef PI
+#define PI 3.141593
+#endif
+
+#ifndef PI_4
+#define PI_4 (PI/4)
+#endif
+
+#ifndef PI_33_DEG
+#define PI_33_DEG 0.57596
+#endif
+
+
 class MetaBax {
 
   public:
@@ -37,13 +50,18 @@ class MetaBax {
 
     void Update();     // Updates signal with image including RX noise, etc.
 
-    void LoadImage(int img_w, int img_h, char* img_ptr, int stride,
+    void LoadImage(int img_w, int img_h, char* img_ptr, int stride, int pitch,
                    fptr_img_row_to_yiq img_row_to_yiq);
 
     void GetImage(char* img_ptr, int img_w, int img_h, int stride, int pitch,
         fptr_frgb_row_to_img frgb_row_to_img_row);
 
     void DecodeRow(int sig_row, float *frgb_row, int img_w);
+
+
+    void SetImage_Blank();
+    void SetImage_TestCard();
+
 
     // Maybe put the below functions in a seperate file (not in the class,
     // but in a namespace) since they will vary with the surface/image type.

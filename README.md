@@ -1,4 +1,4 @@
-
+    
 MetaBax
 =======
 
@@ -13,14 +13,24 @@ Note that the techniques used in this application do not follow any particular a
 Right now, images are parsed as SDL surfaces in software.  There are significant opportunities for speedups in the future (especially if certain parameters are fixed, which is often the case when combining MetaBax with an emulator as a "filter"), although the primary focus right now is on correct functionality and an appropriate analog/retro *feel*.
 
 
+Downloading
+-----------
+
+Currently, `mbtv` and `libmetabax` are in a pre-alpha state (read: under heavy development and not recommended for use at the moment).  When it is considered good enough for alpha usage/testing, I will remove the previous message, and one can follow the building instructions provided below.
+
+When `mbtv` is in a state considered good enough for general use and testing, I will provide binaries (compiled on VS2010) for Windows users.  Linux/UNIX-based systems will find compiling from source rather easy given the few and well-known dependencies.
+
+
 Building & System Requirements
 ------------------------------
 
-For Linux/UNIX-based systems, you should be able to use the included Makefile (just call `make` from the root directory of the source tree).  Build instructions for Windows are coming soon, but you can build the project similar to any other SDL application.
+Build instructions for Windows are coming soon (I hope to provide a Visual Studio solution), but you can build the project similar to any other SDL application (and it would require the same level of user configuration anyways).  The dependencies for Windows are the same as Linux.
 
-`libmetabax` has no explicit dependencies, and although the included reference implementation works with SDL surfaces (and thus requires SDL), any library allowing pixel-level data manipulation will suffice with some minor modifications.
+For Linux/UNIX-based systems, you should be able to use the included Makefile (just call `make` from the root directory of the source tree), once all the dependencies are available.
 
-`mbtv` requires SDL, and will require Python when fully completed.  There are also plans to extend `mbtv` with FFmpeg once basic functionality is implemented.
+`mbtv` requires `SDL` and `libmetabax`, and will require Python when fully completed.  For package-based distributions, you can get all the current dependencies by simply downloading the development library package (e.g. `libsdl1.2-dev` with `apt` on Ubuntu).
+
+`libmetabax` has no explicit dependencies, and although the included reference implementations were made in mind to works with SDL surface formats; any library allowing pixel-level data access will work with `libmetabax` with little modification (none if the pixels are stored in the same provided pixel formats).
 
 
 Using

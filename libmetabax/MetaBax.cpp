@@ -32,6 +32,9 @@ MetaBax::MetaBax(int sig_line_len, int sig_num_lines);
     _i_buffer  = new float[sig_len];
     _q_buffer  = new float[sig_len];
 
+    for (int i = 0; i < sig_len; i++)
+        _composite = _y_buffer = _i_buffer = _q_buffer = 0.0f;
+
     //
     // TODO: Check above if anything can't be allocated.
     //

@@ -12,3 +12,9 @@
 # libmetabax is licensed under the BSD 2-Clause License; see the included   #
 # COPYRIGHT file, or visit http://github.com/Breakthrough/MetaBax.          #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+all:
+	g++ `pkg-config --cflags sdl` -I ./libmetabax ./mbtv/main.cpp -o ./mbtv/mbtv
+
+clean:
+	rm -f ./mbtv/mbtv

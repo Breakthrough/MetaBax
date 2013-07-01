@@ -15,11 +15,14 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 
-#include <cassert>
 #include "MetaBax.h"
 
+#include <cstdlib>
+#include <cstdio>
+#include <cassert>
 
-MetaBax::MetaBax(int sig_line_len, int sig_num_lines);
+
+MetaBax::MetaBax(int sig_line_len, int sig_num_lines)
 {
     int sig_len = sig_line_len * sig_num_lines;
 
@@ -33,7 +36,7 @@ MetaBax::MetaBax(int sig_line_len, int sig_num_lines);
     _q_buffer  = new float[sig_len];
 
     for (int i = 0; i < sig_len; i++)
-        _composite = _y_buffer = _i_buffer = _q_buffer = 0.0f;
+        _composite[i] = _y_buffer[i] = _i_buffer[i] = _q_buffer[i] = 0.0f;
 
     //
     // TODO: Check above if anything can't be allocated.
@@ -41,56 +44,81 @@ MetaBax::MetaBax(int sig_line_len, int sig_num_lines);
 
 }
 
-
-void  MetaBax::Update();     // Updates signal with image including RX noise, etc.
+MetaBax::~MetaBax()
 {
-    // All this has to do is update the composite signal.
+    delete[] _composite;
+    delete[] _y_buffer;
+    delete[] _i_buffer;
+    delete[] _q_buffer;
 }
 
 
-void MetaBax::avs_row_to_img(float* sig_row, int sig_line_len,
-    void*  img_row, int img_w, fptr_frgb2img frgb_row_to_img_row)
+void  MetaBax::Update()     // Updates signal with image including RX noise, etc.
 {
-    // sig_line_len = samples/row
-    // img_w = pixels/row
+    // All this has to do is update the composite signal.
 
+    // TEMP:
+    for (int i = 0; i < this->sig_len; i++)
+        _composite[i] = ((float)rand()/RAND_MAX) * 255.0f;
+}
+
+
+void MetaBax::GetImage(char* img_ptr, int img_w, int img_h, int stride, int pitch,
+    fptr_frgb_row_to_img frgb_row_to_img_row)
+{
     float *frgb_row = new float[3 * img_w];
-    float *frgb_val = frgb_row;
 
+    // Loop through image, and set image data based on decoded composite signal.
+    for (int i = 0; i < img_h; i++)
+    {
+        //
+        // Decode signal into FRGB row buffer.
+        //
+        int sig_row = (this->sig_num_lines * i) / img_h;
+        // Decode one row at a time; right now, using noise
+        // from testing data to set the colours.
+        this->DecodeRow(sig_row, frgb_row, img_w);
+
+        //
+        // Update image with decoded row.
+        //
+        char* img_row_ptr = img_ptr + (i * pitch);
+        frgb_row_to_img_row(frgb_row, img_row_ptr, img_w, stride);
+    }
+    
+    delete[] frgb_row;
+}
+
+
+// Below, this *should* (testing mode now) decode 1 NTSC row into an FRGB buffer,
+// the length of which is the image.
+void MetaBax::DecodeRow(int sig_row, float *frgb_row, int img_w)
+{
+    float *composite_ptr = this->_composite + (sig_row * this->sig_line_len);
     for (int i = 0; i < img_w; i++)
     {
-        // Decode signal into R, G, and B components.
-        float r = 0.0f,
-              g = 0.0f,
-              b = 0.0f;
-
-        //
-        // TODO: Actually decode signal values above.
-        //
-
-        *(frgb_val++) = r;
-        *(frgb_val++) = g;
-        *(frgb_val++) = b;
+        float composite_value = composite_ptr[(this->sig_line_len * i) / img_w];
+        *(frgb_row++) = composite_value;
+        *(frgb_row++) = composite_value;
+        *(frgb_row++) = composite_value; 
     }
-
-    frgb_row_to_img_row(frgb_row, img_row, img_w);
-        
-
-    delete[] frgb_row;
 }
 
 
 void MetaBax::LoadImage(int img_w, int img_h, char* img_ptr, int stride,
     fptr_img_row_to_yiq img_row_to_yiq)
 {
-    for (int sig_row = 0; sig_row < sig_num_lines; sig_row++)
+    for (int sig_line = 0; sig_line < sig_num_lines; sig_line++)
     {
         char* img_row_ptr = img_ptr;
         
-        img_row_ptr += (((img_h * sig_row) / sig_num_lines) * img_w * stride);
+        img_row_ptr += (((img_h * sig_line) / sig_num_lines) * img_w * stride);
+        int sig_offset = (sig_line * sig_line_len);
 
         // Convert image row to YIQ (stored in private class vars).
-        img_row_to_yiq(img_row_ptr, img_w, stride, sig_row);
+        img_row_to_yiq(img_row_ptr, img_w, stride, sig_line_len,
+            this->_y_buffer + sig_offset, this->_i_buffer + sig_offset,
+            this->_q_buffer + sig_offset);
 
         // Premultiply I/Q by sin/cos before further filters?
         // Maybe, maybe not - some DSP encoders do NOT.
@@ -102,22 +130,21 @@ void MetaBax::LoadImage(int img_w, int img_h, char* img_ptr, int stride,
 }
 
 
-static void MetaBax::ARGB32_row_to_yiq(char* img_row_ptr, int img_w,
-    int stride, int sig_row, float* y_buffer, float* i_buffer, float* q_buffer)
+void MetaBax::ARGB32_row_to_yiq(char* img_row_ptr, int img_w, int stride,
+    int sig_line_len, float* y_row_ptr, float* i_row_ptr, float* q_row_ptr)
 {
     // nearest neighbour for the row values.
-    int yiq_offset = sig_row * sig_line_len;
     for (int i = 0; i < sig_line_len; i++)
     {
         char* pixel = img_row_ptr;
         pixel += (((img_w * i) / sig_line_len) * stride);
 
         // pixel[0] == alpha channel == unused
-        y_buffer[yiq_offset + i] = 
+        y_row_ptr[i] = 
             0.2990f * pixel[1] + 0.5870f * pixel[2] + 0.1140f * pixel[3];
-        i_buffer[yiq_offset + i] = 
+        i_row_ptr[i] = 
             0.5957f * pixel[1] - 0.2745f * pixel[2] - 0.3214f * pixel[3];
-        q_buffer[yiq_offset + i] = 
+        q_row_ptr[i] = 
             0.2115f * pixel[1] - 0.5226f * pixel[2] + 0.3111f * pixel[3];
 
         //
@@ -128,21 +155,20 @@ static void MetaBax::ARGB32_row_to_yiq(char* img_row_ptr, int img_w,
 }
 
 
-static void MetaBax::FRGB_row_to_ARGB32(float *frgb_row, char* img_row,
-    int img_w, int stride)
+void MetaBax::FRGB_row_to_ARGB32(float *frgb_row, char* img_row, int img_w, int stride)
 {
     int   i         = 0;
     float *frgb_val = frgb_row;     
     int   *img_val  = (int*)img_row;
-    // Pre-decrement pointers since they are pre-incremented in the loop below.
-    frgb_row--;
-    img_row--;
     // Loop through and set each pixel value in the row (32bpp RGBA).
     while (i < img_w)
-    {
-        *(++img_val) =   (int)(*(++frgb_val)) << 16
-                       | (int)(*(++frgb_val)) << 8
-                       | (int)(*(++frgb_val));
+    { 
+        int r = (int)*(frgb_val++);
+        int g = (int)*(frgb_val++);
+        int b = (int)*(frgb_val++);
+        *(img_val++) =   (r << 16)
+                       | (g << 8)
+                       | (b);
         i++;
     }
 }

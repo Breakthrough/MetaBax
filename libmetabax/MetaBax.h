@@ -21,17 +21,18 @@ class MetaBax {
 
     // Function pointer to floating-point RGB row blitter (converts floating point
     // values decoded from the analog video signal into an integer surface format).
-    typedef void (*fptr_blit_row)(float*, char*, int, int);
+    typedef void (*fptr_frgb_row_to_img)(float*, char*, int, int);
     //                              |       |     |     \- stride of a pixel (in bytes)
     //                              |       |     \---- number of pixels in row
     //                              |       \---- generic pointer to surface data
     //                              \---- pointer floating point values RGBRGB-packed
 
     typedef void (*fptr_img_row_to_yiq)(char*, int, int, int, float*, float*, float*);
-    //                                    img,   w, str, sig row,  y,      i,      q
+    //                                    img,   w, str, sig row len,  y,      i,      q
 
 
     MetaBax(int sig_line_len = 755, int sig_num_lines = 480);
+    ~MetaBax();
 
 
     void Update();     // Updates signal with image including RX noise, etc.
@@ -39,12 +40,16 @@ class MetaBax {
     void LoadImage(int img_w, int img_h, char* img_ptr, int stride,
                    fptr_img_row_to_yiq img_row_to_yiq);
 
+    void GetImage(char* img_ptr, int img_w, int img_h, int stride, int pitch,
+        fptr_frgb_row_to_img frgb_row_to_img_row);
+
+    void DecodeRow(int sig_row, float *frgb_row, int img_w);
 
     // Maybe put the below functions in a seperate file (not in the class,
     // but in a namespace) since they will vary with the surface/image type.
     static void ARGB32_row_to_yiq(char*  img_row_ptr, int    img_w,
-                                  int    stride,      int    sig_row,
-                                  float* y_buffer,    float* i_buffer, float* q_buffer);
+                                  int    stride,      int    sig_line_len,
+                                  float* y_row_ptr,   float* i_row_ptr,  float* q_row_ptr);
 
     static void FRGB_row_to_ARGB32(float* frgb_row, char* img_row,
                                    int    img_w,    int   stride);

@@ -53,7 +53,7 @@ void MetaBax::SetImage_Blank()
 void MetaBax::SetImage_TestCard()
 {
     // TODO: Add code to fill in Y/I/Q values for testcard.
-    
+
 }
 
 
@@ -73,14 +73,18 @@ void MetaBax::Update()     // Updates signal with image including RX noise, etc.
     float iq_multiplier[4];
     for (int i = 0; i < 4; i++)
     {
-        iq_multiplier[i] = cos( ((i%4) * PI_4) + PI_33_DEG);
+        iq_multiplier[i] = cos( ((i%4) * PI_4) + PI_33_DEG );
     }
 
 
     for (int i = 0; i < this->sig_len; i++)
     {
-        _composite[i] = ((float)rand()/RAND_MAX) * 255.0f;
-        _composite[i] = (_composite[i] * 0.08f) + (_y_buffer[i] * 0.92f);
+        // _composite[i] = ((float)rand()/RAND_MAX) * 255.0f;
+        // _composite[i] = (_composite[i] * 0.08f) + (_y_buffer[i] * 0.92f);
+
+        _composite[i] = (_y_buffer[i] * 2.0f)
+            + ( _i_buffer[i] * 0.75f * iq_multiplier[(i+1) % 4] )
+            + ( _q_buffer[i] * 0.75f * iq_multiplier[ (i)  % 4] );
     }
 }
 
@@ -116,13 +120,49 @@ void MetaBax::GetImage(char* img_ptr, int img_w, int img_h, int stride, int pitc
 // the length of which is the image.
 void MetaBax::DecodeRow(int sig_row, float *frgb_row, int img_w)
 {
+    float iq_multiplier[4];
+    for (int i = 0; i < 4; i++)
+        iq_multiplier[i] = cos(PI_4 * (i) + PI*(0.12f));
+
+
     float *composite_ptr = this->_composite + (sig_row * this->sig_line_len);
     for (int i = 0; i < img_w; i++)
     {
-        float composite_value = composite_ptr[(this->sig_line_len * i) / img_w];
-        *(frgb_row++) = composite_value;
-        *(frgb_row++) = composite_value;
-        *(frgb_row++) = composite_value;
+        int sig_offset         = (this->sig_line_len * i) / img_w;
+        int aligned_sig_offset = sig_offset;
+
+        if (aligned_sig_offset % 4 == 3)
+            aligned_sig_offset++;
+        while (aligned_sig_offset % 4 && aligned_sig_offset > 0)
+            aligned_sig_offset--;
+
+        if ((aligned_sig_offset+3) >= (sig_line_len-1))
+            aligned_sig_offset -= 4;
+
+        assert(aligned_sig_offset >= 0 && aligned_sig_offset < sig_line_len);
+
+        float y_val = 0.0f,
+              i_val = 0.0f,
+              q_val = 0.0f;
+
+        y_val = composite_ptr[sig_offset];
+
+        for (int j = 0; j < 4; j++)
+        {
+            i_val += composite_ptr[sig_offset+j] * iq_multiplier[(i+1)%4];
+            q_val += composite_ptr[sig_offset+j] * iq_multiplier[(i)];
+        }
+
+        float r = (y_val + ( 0.946882f*i_val) + ( 0.623557*q_val)) * 255.0f;;
+        float g = (y_val + (-0.274788f*i_val) + (-0.635691*q_val)) * 255.0f;
+        float b = (y_val + (-1.108545f*i_val) + ( 1.709007*q_val)) * 255.0f;
+        if (r > 255.0f) r = 255.0f; else if (r < 0.0f) r = 0.0f;
+        if (g > 255.0f) g = 255.0f; else if (g < 0.0f) g = 0.0f;
+        if (b > 255.0f) b = 255.0f; else if (b < 0.0f) b = 0.0f;
+        *(frgb_row++) = r;
+        *(frgb_row++) = g;
+        *(frgb_row++) = b;
+         
     }
 }
 

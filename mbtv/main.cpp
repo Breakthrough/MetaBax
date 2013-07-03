@@ -39,7 +39,8 @@ int main()
     SDL_Event e;
 
     //MetaBax mb(360, 240);
-    MetaBax mb(755, 480);
+    //MetaBax mb(755, 480);
+    MetaBax mb(1200, 262);  // NES: 300 samples * 4 / 262 Lines
     //MetaBax mb(2880, 480);
 
     assert(image->format->BytesPerPixel == 4);
@@ -94,12 +95,12 @@ int main()
                 SDL_GetMouseState( &x, &y );
                 float mouse_x = x / (float) (screen->w - 1) * 2 - 1;
                 float mouse_y = (1 - y / (float) (screen->h - 1)) * 2 - 1;
-                //mb.tint_i = 2.0f * PI * mouse_x;
-                //mb.tint_q = 2.0f * PI * mouse_y;
+                //mb.tint_phase = 2.0f * PI * mouse_x;
+                //mb.rx_sig_level = 2.0f * mouse_y;
             }
         }
     }
-    printf("mouse_x = %3.3f, mouse_y = %3.3f\n", mb.tint_i, mb.tint_q);
+    //printf("mouse_x = %3.3f, mouse_y = %3.3f\n", mb.tint_i, mb.tint_q);
 
     return 0;
 }

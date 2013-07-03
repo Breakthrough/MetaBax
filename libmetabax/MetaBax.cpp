@@ -25,6 +25,9 @@
 
 MetaBax::MetaBax(int sig_line_len, int sig_num_lines)
 {
+    assert(sig_line_len  >= 4);
+    assert(sig_num_lines >= 1);
+
     int sig_len = sig_line_len * sig_num_lines;
 
     this->sig_len       = sig_len;
@@ -42,9 +45,13 @@ MetaBax::MetaBax(int sig_line_len, int sig_num_lines)
     // TODO: Check above if anything can't be allocated.
     //
 
-    tint_phase = 0.3874f;
-    tint_i     = 2.95f;
-    tint_q     = 1.98f;
+    tint_phase    = 0.3874f;
+
+    level_y       = 1.0f;
+    level_i       = 2.95f;
+    level_q       = 1.98f;
+
+    rx_sig_level = 1.0f;
 
 }
 
@@ -81,15 +88,25 @@ void MetaBax::Update()     // Updates signal with image including RX noise, etc.
         iq_multiplier[i] = cos( (i * PI_4) + PI_33_DEG );
     }
 
+    if (this->rx_sig_level < 0.0f) this->rx_sig_level = 0.0f;
+    if (this->rx_sig_level > 1.0f) this->rx_sig_level = 1.0f;
+
     for (int i = 0; i < this->sig_num_lines; i++)
     {
-        int sig_offset = i * this->sig_line_len;
+        int   sig_offset = i * this->sig_line_len;
+        float sig_noise = 0.0f;
         for (int j = 0; j < this->sig_line_len; j++)
         {
-            _composite[sig_offset + j] = _y_buffer[sig_offset + j]
+            if (j % 4 == 0)
+                sig_noise = (3.4f * rand()/(float)RAND_MAX) - 1.2f;
+            _composite[sig_offset + j] = rx_sig_level * (_y_buffer[sig_offset + j]
                 + _i_buffer[sig_offset + j] * iq_multiplier[(j+1) % 4] * 0.5f
-                + _q_buffer[sig_offset + j] * iq_multiplier[( j ) % 4];
+                + _q_buffer[sig_offset + j] * iq_multiplier[( j ) % 4])
+             + (1.0f - rx_sig_level) * (sig_noise);
+            
         }
+
+
     }
 }
 
@@ -138,23 +155,23 @@ void MetaBax::DecodeRow(int sig_row, float *frgb_row, int img_w)
     // because of the I/Q multiplier.
     for (int i = 0; i < img_w; i++)
     {
-        int sig_offset         = (this->sig_line_len * i) / img_w;
+        int sig_offset         = ((this->sig_line_len-4) * i) / img_w;
         int aligned_sig_offset = sig_offset;
 
         if (aligned_sig_offset % 4 == 3)
             aligned_sig_offset++;
+
         while (aligned_sig_offset % 4 && aligned_sig_offset > 0)
             aligned_sig_offset--;
 
-        if ((aligned_sig_offset+3) >= (sig_line_len-1))
+        while ((aligned_sig_offset+3) >= this->sig_line_len)
             aligned_sig_offset -= 4;
 
-        assert(aligned_sig_offset >= 0 && aligned_sig_offset < (sig_line_len-4));
+        assert(aligned_sig_offset >= 0 && (aligned_sig_offset+3) < (sig_line_len));
 
         float y_val = 0.0f,
               i_val = 0.0f,
               q_val = 0.0f;
-
 
         for (int j = 0; j < 4; j++)
         {
@@ -164,10 +181,9 @@ void MetaBax::DecodeRow(int sig_row, float *frgb_row, int img_w)
         }
 
         // Divide by 4 to normalize, and adjust values depending on settings.
-        y_val *= 0.25f; 
-        i_val *= 0.25f * tint_i; //0.25f * tint_i;
-        q_val *= 0.25f * tint_q;// * tint_i;
-        //q_val = 0.0f;
+        y_val *= 0.25f * this->level_y; 
+        i_val *= 0.25f * this->level_i;
+        q_val *= 0.25f * this->level_q;
 
         float r = (y_val + ( 0.946882f * i_val) + ( 0.623557 * q_val)) * 255.0f; //63.75f;
         float g = (y_val + (-0.274788f * i_val) + (-0.635691 * q_val)) * 255.0f; //63.75f;

@@ -76,10 +76,17 @@ class MetaBax {
     int   h_sync;       // [0, sig_line_len)  then wraps arounds
     int   v_sync;       // [0, sig_num_lines) then wraps around
 
-
     float h_freq_err;   // [0.0f, 1.0f] or [0.0f, Infty)?
     float v_freq_err;   // [0.0f, 1.0f]
     float rx_sig_level; // [0.0f, 1.0f]
+
+    float tint_phase;
+    float tint_i;
+    float tint_q;
+
+
+
+
 
     // Raw composite signal, updated from the y, i, and q buffers below.
     float *_composite;

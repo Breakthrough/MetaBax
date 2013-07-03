@@ -29,6 +29,7 @@ int main()
     
     SDL_Surface *screen = SDL_SetVideoMode(800, 480, 32, SDL_SWSURFACE | SDL_DOUBLEBUF);
     SDL_Surface *tmp    = SDL_LoadBMP("testmario.bmp");
+    //SDL_Surface *tmp    = SDL_LoadBMP("testbars.bmp");
     SDL_Surface *image  = SDL_DisplayFormat(tmp);
     SDL_FreeSurface(tmp);
 
@@ -37,8 +38,8 @@ int main()
 
     SDL_Event e;
 
-    MetaBax mb(360, 240);
-    //MetaBax mb(755, 480);
+    //MetaBax mb(360, 240);
+    MetaBax mb(755, 480);
     //MetaBax mb(2880, 480);
 
     assert(image->format->BytesPerPixel == 4);
@@ -88,14 +89,17 @@ int main()
         
             if ( e.type == SDL_MOUSEMOTION )
             {
-                /*
+                
                 int x, y;
                 SDL_GetMouseState( &x, &y );
                 float mouse_x = x / (float) (screen->w - 1) * 2 - 1;
-                float mouse_y = (1 - y / (float) (screen->h - 1)) * 2 - 1;*/
+                float mouse_y = (1 - y / (float) (screen->h - 1)) * 2 - 1;
+                //mb.tint_i = 2.0f * PI * mouse_x;
+                //mb.tint_q = 2.0f * PI * mouse_y;
             }
         }
     }
+    printf("mouse_x = %3.3f, mouse_y = %3.3f\n", mb.tint_i, mb.tint_q);
 
     return 0;
 }

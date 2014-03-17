@@ -2,6 +2,16 @@
 MetaBax
 =======
 
+By: [Brandon Castellano](http://www.bcastell.com])
+
+-----
+
+Current Status
+-----
+
+Currently, everything is in a very early (read: alpha) stage.  `mbtv` is implemented right now in C++ with SDL as a rough demo/prototype, but my end goal is to write `mbtv` in Python and pygame, interfacing with MetaBax as a shared library (itself written in C++).  This is further motivated by the fact that Pygame surface data can be accessed directly through a Numpy array, which can subsequently (via ctypes) be accessed by a shared library.
+
+This should allow accurate real-time signal emulation with reasonable performance on most systems, while also allowing the interface itself to be extended very easily.  The end goal of `mbtv` is to allow user-defined "channels" of different media (pictures, videos) or even entire Python programs (e.g. scraping and displaying a news feed/stock quotes, cyberpunk-esque terminal)!
 
 About
 -----
